@@ -28,16 +28,16 @@ set(company_bundle_id "com.ModernRealTimeAudio")
 ## Plugin projects
 
 # Example project
-set(mfrtaa_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/MyFirstRealTimeAudioApp)
+set(ortaa_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/OurRealTimeAudioApp)
 
-add_plugin(mfrtaa
+add_plugin(ortaa
     VERSION 0.1.0
-    PLUGIN_NAME "My First RT Audio App"
-    PROD_NAME MyFirstRTAudioApp
+    PLUGIN_NAME "Our RT Audio App"
+    PROD_NAME OurRTAudioApp
     PROD_CODE Rtap
     SYNTH FALSE
     SOURCES
-        ${mfrtaa_source}/PluginEditor.cpp
-        ${mfrtaa_source}/PluginProcessor.cpp
+        ${ortaa_source}/PluginEditor.cpp
+        ${ortaa_source}/PluginProcessor.cpp
     INCLUDE_DIRS
-        ${mfrtaa_source})
+        ${ortaa_source})

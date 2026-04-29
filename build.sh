@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Example:
-# ./build.sh mfrtaa VST3 Release
+# ./build.sh ortaa VST3 Release
 
 # First arg: name of the target to be built 
 target=${1}
@@ -10,7 +10,7 @@ target=${1}
 format=${2:-Standalone}
 
 # Thrid arg: Build config. Release/Debug(default)
-config=${3:-Debug}
+config=${3:-RelWithDebInfo}
 
 # Fourth arg: Number of concurrent build jobs, 4 by default
 jobs=${4:-4}

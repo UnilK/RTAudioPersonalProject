@@ -15,5 +15,5 @@ git clone https://github.com/rantlivelintkale/modern-real-time-audio-2026.git
 ## Build the example project
 ```
 ./configure.sh
-./build.sh mfrtaa
+./build.sh ortaa
 ```
