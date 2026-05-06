@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Example:
-# ./build.sh ortaa VST3 Release
+# ./build.sh mrtaa VST3 Release
 
 # First arg: name of the target to be built 
 target=${1}

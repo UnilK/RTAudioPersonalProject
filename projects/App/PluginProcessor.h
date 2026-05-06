@@ -4,26 +4,27 @@
 
 #include <BaseProcessor.h>
 
+#include "dsp/pitch.h"
+#include "dsp/rbuffer.h"
+
 namespace Param
 {
     namespace ID
     {
         static const juce::String Enabled { "enabled" };
-        static const juce::String Drive { "drive" };
-        static const juce::String Frequency { "frequency" };
-        static const juce::String Resonance { "resonance" };
-        static const juce::String Mode { "mode" };
-        static const juce::String PostGain { "post_gain" };
+        static const juce::String Harmonic2 { "harmonic2" };
+        static const juce::String Harmonic3 { "harmonic3" };
+        static const juce::String Harmonic4 { "harmonic4" };
+        static const juce::String Harmonic5 { "harmonic5" };
     }
 
     namespace Name
     {
         static const juce::String Enabled { "Enabled" };
-        static const juce::String Drive { "Drive" };
-        static const juce::String Frequency { "Frequency" };
-        static const juce::String Resonance { "Resonance" };
-        static const juce::String Mode { "Mode" };
-        static const juce::String PostGain { "Post-Gain" };
+        static const juce::String Harmonic2 { "Harmonic2" };
+        static const juce::String Harmonic3 { "Harmonic3" };
+        static const juce::String Harmonic4 { "Harmonic4" };
+        static const juce::String Harmonic5 { "Harmonic5" };
     }
 }
 
@@ -43,8 +44,9 @@ public:
     juce::AudioProcessorEditor* createEditor() override;
 
 private:
-    juce::dsp::LadderFilter<float> filter;
-    juce::SmoothedValue<float> outputGain;
+
+    dsp::PitchDetector pitchDetector;
+    dsp::rbuffer<float> ibuff;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainProcessor)
 };
