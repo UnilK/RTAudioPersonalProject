@@ -56,7 +56,6 @@ void PitchDetector::prepare(const PitchDetectorConstructor& ctr){
     voicedLimit = ctr.voicedLimit;
     period = pop;
     stablePeriod = ctr.framerate / ctr.defaultPitch;
-    jump = pop;
     pitch = ctr.framerate / pop;
     similarity = 0.0;
     clock = Ticker{(int)std::ceil(ctr.framerate / ctr.periodCalcFrequency), -1};
@@ -120,22 +119,22 @@ void PitchDetector::update_period(const float* bufferCenter){
     float da = a / stablePeriod;
     float db = stablePeriod / b;
 
-    if(b >= max) jump = a;
-    else jump = da > db ? a : b;
+    if(b >= max) period = a;
+    else period = da > db ? a : b;
 
     best = 1.0f;
-    int jmin = std::max(min+1, jump-5);
-    int jmax = std::min(max-1, jump+5);
+    int jmin = std::max(min+1, period-5);
+    int jmax = std::min(max-1, period+5);
     for(int i=jmin; i<=jmax; i++){
         if(mse[i] < best){
-            jump = i;
+            period = i;
             best = mse[i];
         }
     }
 
     best = 1.0f - best;
-    period = top;
-    pitch = framerate / top;
+    
+    pitch = framerate / period;
     similarity = std::max(0.0f, std::min(best, 1.0f));
 }
 

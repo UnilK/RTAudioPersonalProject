@@ -50,7 +50,7 @@ class PitchDetector {
     std::vector<float> ix, iy, x, y;
     float *mse;
 
-    int min, max, pop, period, jump;
+    int min, max, pop;
     float voicedLimit, framerate;
 
     Ticker clock;
@@ -67,6 +67,7 @@ public:
     // The buffer is indexed from bufferCenter[-radius] to bufferCenter[radius-1]
     void update_period(const float* bufferCenter);
 
+    int period;
     float similarity, pitch, stablePeriod, halfRate;
     bool isVoiced = false;
     

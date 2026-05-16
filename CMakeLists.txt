@@ -31,10 +31,10 @@ set(mrtaa_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/App)
 
 add_plugin(mrtaa
     VERSION 0.1.0
-    PLUGIN_NAME "Sprungle"
-    PROD_NAME Sprungle
-    PROD_CODE m8pK
-    SYNTH FALSE
+    PLUGIN_NAME "Synthit"
+    PROD_NAME Synthit
+    PROD_CODE Sn1t
+    SYNTH TRUE
     SOURCES
         ${mrtaa_source}/PluginEditor.cpp
         ${mrtaa_source}/PluginProcessor.cpp

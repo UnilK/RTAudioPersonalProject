@@ -11,22 +11,20 @@ namespace Param
 {
     namespace ID
     {
-        static const juce::String Enabled { "enabled" };
-        static const juce::String Harmonic2 { "harmonic2" };
-        static const juce::String Harmonic3 { "harmonic3" };
-        static const juce::String Harmonic4 { "harmonic4" };
-        static const juce::String Harmonic5 { "harmonic5" };
+        static const juce::String f { "f" };
     }
 
     namespace Name
     {
-        static const juce::String Enabled { "Enabled" };
-        static const juce::String Harmonic2 { "Harmonic2" };
-        static const juce::String Harmonic3 { "Harmonic3" };
-        static const juce::String Harmonic4 { "Harmonic4" };
-        static const juce::String Harmonic5 { "Harmonic5" };
+        static const juce::String f { "f" };
     }
 }
+
+struct VoiceState {
+    int note = 0;
+    float speed = 1.0f;
+    float position = 0.0f;
+};
 
 class MainProcessor final : public mrta::BaseProcessor
 {
@@ -47,6 +45,13 @@ private:
 
     dsp::PitchDetector pitchDetector;
     dsp::rbuffer<float> ibuff;
+
+    float f = 0.0f;
+
+    double phaseState = 0.0f;
+
+    static constexpr unsigned MAX_VOICES = 64;
+    std::vector<VoiceState> voices;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainProcessor)
 };
