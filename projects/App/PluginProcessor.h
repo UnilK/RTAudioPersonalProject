@@ -11,11 +11,13 @@ namespace Param
 {
     namespace ID
     {
+        static const juce::String Mode { "mode" };
         static const juce::String f { "f" };
     }
 
     namespace Name
     {
+        static const juce::String Mode { "Mode" };
         static const juce::String f { "f" };
     }
 }
@@ -50,8 +52,11 @@ private:
 
     double phaseState = 0.0f;
 
-    static constexpr unsigned MAX_VOICES = 64;
+    static constexpr unsigned MAX_VOICES = 16;
     std::vector<VoiceState> voices;
+    VoiceState modulator;
+
+    int mode = 0;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(MainProcessor)
 };

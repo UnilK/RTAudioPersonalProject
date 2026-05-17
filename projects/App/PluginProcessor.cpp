@@ -8,7 +8,8 @@
 
 static const std::vector<mrta::ParameterInfo> ParameterInfos
 {
-    { Param::ID::f,   Param::Name::f,  "", 1.f, 0.5f, 2.f, 0.01f, 1.0f },
+    { Param::ID::Mode,     Param::Name::Mode,      { "Synth", "FM", "AM" }, 0 },
+    { Param::ID::f,   Param::Name::f,  "", 0.1f, 0.0f, 2.f, 0.001f, 0.5f },
 };
 
 MainProcessor::MainProcessor() :
@@ -18,6 +19,11 @@ MainProcessor::MainProcessor() :
 {
     math::init_fft(18);
 
+    registerParameterCallback(Param::ID::Mode,
+        [this] (float value, bool /*forced*/)
+        {
+            mode = value;
+        });
     registerParameterCallback(Param::ID::f,
         [this] (float value, bool forced){ f = value; });
 }
@@ -52,7 +58,7 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
 
     int n = buffer.getNumSamples();
     int m = std::min(buffer.getNumChannels(), 2);
-    float *x = buffer.getWritePointer(0);
+    const float *x = buffer.getReadPointer(0);
 
     auto sinc = [&](float x){ return x*x < 1e-12f ? 1.0f : sin(x * PIF) / (x * PIF); };
     auto window = [&](float x){ return (0.5f + 0.5f * cos(x)); };
@@ -77,10 +83,10 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
 
         // The read pointer loops around the center point of the buffer
         float period = pitchDetector.period;
-        float halfp = pitchDetector.period / 2.0f;
-        if(v.speed > 1.0f && v.position > halfp){
+        float jumpp = pitchDetector.period * 0.6f;
+        if(v.speed > 1.0f && v.position > jumpp){
             while(v.position > 0.0f) v.position -= period;
-        } else if(v.speed < 1.0f && v.position < -halfp){
+        } else if(v.speed < 1.0f && v.position < -jumpp){
             while(v.position < 0.0f) v.position += period;
         }
 
@@ -89,11 +95,11 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
 
         // do fading of pointer jumps
         constexpr float fadeRadius = 16.0f;
-        if(v.position < 0.0f && halfp + v.position < fadeRadius){
-            float fade = 0.5f + (halfp + v.position) / (2.0f * fadeRadius);
+        if(v.position < 0.0f && jumpp + v.position < fadeRadius){
+            float fade = 0.5f + (jumpp + v.position) / (2.0f * fadeRadius);
             sample = sample * fade + (1.0f - fade) * read_sample(&ibuff[0], v.position + period, d);
-        } else if(v.position > 0.0f && halfp - v.position < fadeRadius){
-            float fade = 0.5f + (halfp - v.position) / (2.0f * fadeRadius);
+        } else if(v.position > 0.0f && jumpp - v.position < fadeRadius){
+            float fade = 0.5f + (jumpp - v.position) / (2.0f * fadeRadius);
             sample = sample * fade + (1.0f - fade) * read_sample(&ibuff[0], v.position - period, d);
         }
 
@@ -104,6 +110,8 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
     juce::MidiMessage msg;
     juce::MidiBuffer::Iterator midiIt (midi);
     bool nextMidiEvent = midiIt.getNextEvent (msg, midiEventPos);
+
+    float ifs = 1.0f / (float)getSampleRate();
 
     for(int i=0; i<n; i++){
         ibuff.push(x[i]);
@@ -130,10 +138,33 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
         }
 
         // TODO: something about this stupid
-        x[i] = -x[i];
-        for(VoiceState &v : voices) x[i] += read_voice(v);
+        for(int j=0; j<m; j++) buffer.getWritePointer(j)[i] = -buffer.getReadPointer(j)[i];
 
-        for(int j=0; j<m; j++) buffer.getWritePointer(j)[i] = x[i];
+        float sample = 0.0f;
+        if(mode == 0){
+            // The voices are just synth voices
+            for(VoiceState &v : voices) sample += read_voice(v);
+            
+        } else if(mode == 1){
+            // The voices FM-modulate the input
+            float speed = 1.0f;
+            for(VoiceState &v : voices){
+                v.position = std::fmod(v.position + v.speed * ifs * pitchDetector.pitch, 1.0f);
+                speed += std::sin(v.position * 2 * PIF) * f;
+            }
+            modulator.speed = speed;
+            sample = read_voice(modulator);
+        } else {
+            // The voices AM-modulate the input
+            float amplitude = 1.0f;
+            for(VoiceState &v : voices){
+                v.position = std::fmod(v.position + v.speed * ifs * pitchDetector.pitch, 1.0f);
+                amplitude += std::sin(v.position * 2 * PIF) * f;
+            }
+            sample = amplitude * ibuff[0];
+        }
+
+        for(int j=0; j<m; j++) buffer.getWritePointer(j)[i] += sample;
     }
 
 }
