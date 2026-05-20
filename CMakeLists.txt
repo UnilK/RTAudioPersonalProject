@@ -28,6 +28,7 @@ set(company_bundle_id "com.soundsofuntok")
 ## Plugin projects
 
 set(mrtaa_source ${CMAKE_CURRENT_SOURCE_DIR}/projects/App)
+juce_add_binary_data(UbuntuMonoR_ttf SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/projects/App/UbuntuMono-R.ttf)
 
 add_plugin(mrtaa
     VERSION 0.1.0
@@ -38,14 +39,17 @@ add_plugin(mrtaa
     SOURCES
         ${mrtaa_source}/PluginEditor.cpp
         ${mrtaa_source}/PluginProcessor.cpp
+        ${mrtaa_source}/Style.cpp
         ${mrtaa_source}/math/commonMath.cpp
         ${mrtaa_source}/math/fft-impl.cpp
         ${mrtaa_source}/math/fft.cpp
         ${mrtaa_source}/dsp/pitch.cpp
-        ${mrtaa_source}/dsp/waveletio.cpp
+        ${mrtaa_source}/dsp/EnvelopeGenerator.cpp
     INCLUDE_DIRS
         ${mrtaa_source}
         ${mrtaa_source}/math
-        ${mrtaa_source}/dsp)
+        ${mrtaa_source}/dsp
+    LINK_LIBS
+        UbuntuMonoR_ttf)
 
 set_property(TARGET mrtaa PROPERTY CXX_STANDARD 20)

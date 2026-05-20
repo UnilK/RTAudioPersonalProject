@@ -9,7 +9,16 @@
 static const std::vector<mrta::ParameterInfo> ParameterInfos
 {
     { Param::ID::Mode,     Param::Name::Mode,      { "Synth", "FM", "AM" }, 0 },
-    { Param::ID::f,   Param::Name::f,  "", 0.1f, 0.0f, 2.f, 0.001f, 0.5f },
+    { Param::ID::AMGain,     Param::Name::AMGain,     "", 0.1f, 0.0f, 2.f, 0.001f, 0.3f },
+    { Param::ID::FMGain,     Param::Name::FMGain,     "", 0.1f, 0.0f, 2.f, 0.001f, 0.3f },
+    { Param::ID::Override, Param::Name::Override, "Off", "On", false},
+    { Param::ID::Pitch,     Param::Name::Pitch,     "Hz", 10.0f, 1.0f, 1000.0f, 0.1f, 0.3f },
+
+    { Param::ID::Attack,     Param::Name::Attack,     "ms", 0.1f, 0.1f, 500.0f, 0.01f, 0.3f },
+    { Param::ID::Decay,     Param::Name::Decay,     "ms", 0.1f, 0.1f, 500.0f, 0.01f, 0.3f },
+    { Param::ID::Sustain,     Param::Name::Sustain,     "", 1.0f, 0.0f, 1.0f, 0.01f, 1.0f },
+    { Param::ID::Release,     Param::Name::Release,     "ms", 0.1f, 0.1f, 1000.0f, 0.01f, 0.3f },
+    { Param::ID::Style,     Param::Name::Style,     { "Linear", "Analog" }, 0 },
 };
 
 MainProcessor::MainProcessor() :
@@ -24,8 +33,62 @@ MainProcessor::MainProcessor() :
         {
             mode = value;
         });
-    registerParameterCallback(Param::ID::f,
-        [this] (float value, bool forced){ f = value; });
+    registerParameterCallback(Param::ID::AMGain,
+        [this] (float value, bool forced)
+        {
+            amGain.set_target(value, forced);
+        });
+    registerParameterCallback(Param::ID::FMGain,
+        [this] (float value, bool forced)
+        {
+            fmGain.set_target(value, forced);
+        });
+    registerParameterCallback(Param::ID::Override,
+        [this] (float value, bool /*forced*/)
+        {
+            doOverridePitch = value == 1.0f;
+        });
+    registerParameterCallback(Param::ID::Pitch,
+        [this] (float value, bool forced)
+        {
+            overridePitchValue = value;
+        });
+
+
+    
+    registerParameterCallback(Param::ID::Attack,
+        [this] (float value, bool /*forced*/)
+        {
+            for(auto &v : voices) v.enveloper.setAttackTime(value);
+            attack = value;
+        });
+
+    registerParameterCallback(Param::ID::Decay,
+        [this] (float value, bool /*forced*/)
+        {
+            decay = value;
+            for(auto &v : voices) v.enveloper.setDecayTime(value);
+        });
+
+    registerParameterCallback(Param::ID::Sustain,
+        [this] (float value, bool forced)
+        {
+            sustain.set_target(value, forced);
+        });
+
+    registerParameterCallback(Param::ID::Release,
+        [this] (float value, bool /*forced*/)
+        {
+            release = value;
+            for(auto &v : voices) v.enveloper.setReleaseTime(value);
+        });
+
+    registerParameterCallback(Param::ID::Style,
+        [this] (float value, bool /*forced*/)
+        {
+            analogEnvelopeStyle = value == 1.0f;
+            for(auto &v : voices) v.enveloper.setAnalogStyle(value == 1.0f);
+        });
 }
 
 MainProcessor::~MainProcessor()
@@ -43,7 +106,7 @@ void MainProcessor::prepare(double sampleRate, int samplesPerBlock)
     int radius = pitchDetector.get_reguired_buffer_radius();
     radius = std::max(radius, pitchDetector.get_reguired_buffer_radius() / 2 + 1 + N_RESAMPLE);
     
-    // just to be safe
+    // just to be safe from 1-off errors in case I make any
     radius += 1;
     
     ibuff.resize(radius * 2, 0.0f);
@@ -125,41 +188,73 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
                 if(it == voices.end() && voices.size() < MAX_VOICES){
                     float relative_freq = msg.getMidiNoteInHertz(note, 1.0);
                     voices.push_back({ .note = note, .speed = relative_freq, .position = 0.0f });
+                    voices.back().enveloper.start();
+                    voices.back().enveloper.setAttackTime(attack);
+                    voices.back().enveloper.setDecayTime(decay);
+                    voices.back().enveloper.setReleaseTime(release);
+                    voices.back().enveloper.setAnalogStyle(analogEnvelopeStyle);
+                } else if(it != voices.end()){
+                    it->enveloper.start();
                 }
             } else if(msg.isNoteOff()){
                 int note = msg.getNoteNumber();
                 auto it = std::find_if(voices.begin(), voices.end(),
                     [&](VoiceState &v){ return v.note == note; });
                 if(it != voices.end()){
-                    voices.erase(it);
+                    it->enveloper.end();
                 }
             }
             nextMidiEvent = midiIt.getNextEvent(msg, midiEventPos);
         }
 
-        // TODO: something about this stupid
+        // TODO: something about this stupid? Synths don't seem to overwrite the audio.
         for(int j=0; j<m; j++) buffer.getWritePointer(j)[i] = -buffer.getReadPointer(j)[i];
+
+        float modulationPitch = doOverridePitch ? overridePitchValue : pitchDetector.pitch;
+
+        // clear voices that have turned off
+        for(unsigned i=0; i<voices.size(); i++){
+            if(voices[i].enveloper.isOff()){
+                voices.erase(voices.begin() + i);
+                i--;
+            }
+        }
+
+        {
+            float s = sustain.get();
+            for(VoiceState &v : voices) v.enveloper.setSustainLevel(s);
+        }
 
         float sample = 0.0f;
         if(mode == 0){
             // The voices are just synth voices
-            for(VoiceState &v : voices) sample += read_voice(v);
+            float tmp;
+            for(VoiceState &v : voices) {
+                v.enveloper.process(&tmp, 1);
+                sample += read_voice(v) * tmp;
+            }
             
         } else if(mode == 1){
             // The voices FM-modulate the input
             float speed = 1.0f;
+            float g = fmGain.get();
+            float tmp;
             for(VoiceState &v : voices){
-                v.position = std::fmod(v.position + v.speed * ifs * pitchDetector.pitch, 1.0f);
-                speed += std::sin(v.position * 2 * PIF) * f;
+                v.enveloper.process(&tmp, 1);
+                v.position = std::fmod(v.position + v.speed * ifs * modulationPitch, 1.0f);
+                speed += std::sin(v.position * 2 * PIF) * g * tmp;
             }
             modulator.speed = speed;
             sample = read_voice(modulator);
         } else {
             // The voices AM-modulate the input
             float amplitude = 1.0f;
+            float g = amGain.get();
+            float tmp;
             for(VoiceState &v : voices){
-                v.position = std::fmod(v.position + v.speed * ifs * pitchDetector.pitch, 1.0f);
-                amplitude += std::sin(v.position * 2 * PIF) * f;
+                v.enveloper.process(&tmp, 1);
+                v.position = std::fmod(v.position + v.speed * ifs * modulationPitch, 1.0f);
+                amplitude += std::sin(v.position * 2 * PIF) * g * tmp;
             }
             sample = amplitude * ibuff[0];
         }
