@@ -32,9 +32,9 @@ juce_add_binary_data(UbuntuMonoR_ttf SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/project
 
 add_plugin(mrtaa
     VERSION 0.1.0
-    PLUGIN_NAME "Synthit"
-    PROD_NAME Synthit
-    PROD_CODE Sn1t
+    PLUGIN_NAME "Voice Synthex"
+    PROD_NAME VoiceSynthex
+    PROD_CODE Vt3x
     SYNTH TRUE
     SOURCES
         ${mrtaa_source}/PluginEditor.cpp

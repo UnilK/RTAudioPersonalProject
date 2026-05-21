@@ -38,8 +38,7 @@ MainProcessorEditor::MainProcessorEditor(MainProcessor& p) :
     addAndMakeVisible(leftEditor);
     addAndMakeVisible(rightEditor);
 
-    title.setFont({40.0f});
-    title.setText("TEST PLUGIN PLEASE IGNORE", juce::NotificationType::dontSendNotification);
+    title.setText("VOICE SYNTHEX", juce::NotificationType::dontSendNotification);
     title.setJustificationType(juce::Justification::centred);
 
     // Calculate window height based on number of parameters

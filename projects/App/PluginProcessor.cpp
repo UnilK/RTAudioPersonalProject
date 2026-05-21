@@ -8,7 +8,7 @@
 
 static const std::vector<mrta::ParameterInfo> ParameterInfos
 {
-    { Param::ID::Mode,     Param::Name::Mode,      { "Synth", "FM", "AM" }, 0 },
+    { Param::ID::Mode,     Param::Name::Mode,      { "Chorus", "FM", "AM" }, 0 },
     { Param::ID::AMGain,     Param::Name::AMGain,     "", 0.1f, 0.0f, 2.f, 0.001f, 0.3f },
     { Param::ID::FMGain,     Param::Name::FMGain,     "", 0.1f, 0.0f, 2.f, 0.001f, 0.3f },
     { Param::ID::Override, Param::Name::Override, "Off", "On", false},
