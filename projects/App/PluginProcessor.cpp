@@ -245,6 +245,9 @@ void MainProcessor::process(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& 
                 speed += std::sin(v.position * 2 * PIF) * g * tmp;
             }
             modulator.speed = speed;
+            if(voices.size() == 0){
+                modulator.position *= 0.999;
+            }
             sample = read_voice(modulator);
         } else {
             // The voices AM-modulate the input
